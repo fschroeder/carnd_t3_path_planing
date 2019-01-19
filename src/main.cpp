@@ -201,8 +201,15 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
-  h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
-                     uWS::OpCode opCode) {
+  // Start in lane
+  int lane = 1;
+
+  // reference velocity to target
+  double ref_vel = 0.0;
+
+  h.onMessage([&ref_vel, &lane, &map_waypoints_x,&map_waypoints_y,&map_waypoints_s,
+      &map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data,
+          size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -240,16 +247,65 @@ int main() {
 
           	json msgJson;
 
-            // FStart
+            // TODO START: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
 
+            // Provided previous path
             int prev_size = previous_path_x.size();
 
-            // Start in lane^
-            int lane = 1;
+            /********************************************************************
+            COLLISION AVOIDANCE
+            ********************************************************************/
 
-            // reference velocity to target
-            double ref_vel = 49.5;
+            // Clearance: Is the other car blocking my way?
+            int clearance = 2;
 
+            // Check if we have a path "history"
+            if(prev_size > 0){
+                // take the last known s position
+                car_s = end_path_s;
+            }
+
+            // Is there something in our lane?
+            bool to_close = false;
+
+            // find rev_v to use
+            for(int i = 0; i < sensor_fusion.size(); i++){
+
+                // iterate through all vehicles and check if one is in my lane
+                float d = sensor_fusion[i][6];
+                if(d < (2 + 4 * lane + clearance) && d > (2 + 4 * lane - clearance)){
+
+                    // get vehicle speed x and y values of the target vehicle
+                    double vx = sensor_fusion[i][3];
+                    double vy = sensor_fusion[i][4];
+
+                    // get the magnitude speed of the target vehicle
+                    double check_speed = sqrt(vx * vx + vy * vy);
+
+                    // get the s position of the target vehicle
+                    double check_car_s = sensor_fusion[i][5];
+                    check_car_s += ((double)prev_size * .02 * check_speed);
+
+                    // Looking only for cars which are in front of us and within range
+                    if((check_car_s > car_s) && (check_car_s - car_s < 30)){
+                        to_close = true;
+                    }
+                }
+            }
+
+            // If ego vehicle is on collision course: decrement speed, else increase
+            // till reaching max. allowed speed.
+            if(to_close){
+                ref_vel -= .224; // decelerating by - 4 m/s2
+            } else if(ref_vel < 49.5){
+                ref_vel += .224; // accelerating by - 4 m/s2
+            }
+
+            /********************************************************************
+            TRAJECTORY CALCULATION
+            ********************************************************************/
+
+            // Variables for the way points
             vector<double> ptsx;
             vector<double> ptsy;
 
@@ -257,8 +313,8 @@ int main() {
             double ref_y = car_y;
             double ref_yaw = deg2rad(car_yaw);
 
-            std::cout << "Prev_Size: " << prev_size << std::endl;
-
+            // Check if there are enough waypoints for the spline calculation,
+            // if not, make some
             if(prev_size < 2){
                 double prev_car_x = car_x - cos(car_yaw);
                 double prev_car_y = car_y - sin(car_yaw);
@@ -269,20 +325,19 @@ int main() {
                 ptsy.push_back(prev_car_y);
                 ptsy.push_back(car_y);
             }
-            else{
-
-                ref_x = previous_path_x[prev_size-1];
-                ref_y = previous_path_y[prev_size-1];
+            else {
+                ref_x = previous_path_x[prev_size - 1];
+                ref_y = previous_path_y[prev_size - 1];
 
                 double ref_x_prev = previous_path_x[prev_size - 2];
                 double ref_y_prev = previous_path_y[prev_size - 2];
                 ref_yaw = atan2(ref_y - ref_y_prev, ref_x - ref_x_prev);
 
                 ptsx.push_back(ref_x_prev);
-                ptsx.push_back(car_x);
+                ptsx.push_back(ref_x);
 
                 ptsy.push_back(ref_y_prev);
-                ptsy.push_back(car_y);
+                ptsy.push_back(ref_y);
             }
 
             // Infernet add evenly 30m spaced points ahead of the startig reference
@@ -356,9 +411,8 @@ int main() {
                 next_y_vals.push_back(y_point);
             }
 
-            // FEnd
+            // TODO END: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
 
-          	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           	msgJson["next_x"] = next_x_vals;
           	msgJson["next_y"] = next_y_vals;
 
