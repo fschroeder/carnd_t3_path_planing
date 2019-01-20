@@ -253,11 +253,11 @@ int main() {
             int prev_size = previous_path_x.size();
 
             /********************************************************************
-            COLLISION AVOIDANCE aka. ACC
+            COLLISION AVOIDANCE aka. ACC (Adaptive Cruise Control)
             ********************************************************************/
 
             // Clearance: Is the other car blocking my way?
-            int clearance = 2;
+            int min_lat_clearance = 2;
             int min_long_clearance = (int)(car_speed/2.0);
 
             // Check if we have a path "history"
@@ -274,7 +274,7 @@ int main() {
 
                 // iterate through all vehicles and check if one is in my lane
                 float d = sensor_fusion[i][6];
-                if(d < (2 + 4 * lane + clearance) && d > (2 + 4 * lane - clearance)){
+                if(d < (2 + 4 * lane + min_lat_clearance) && d > (2 + 4 * lane - min_lat_clearance)){
 
                     // get vehicle speed x and y values of the target vehicle
                     double vx = sensor_fusion[i][3];
@@ -297,46 +297,45 @@ int main() {
             // If ego vehicle is on collision course: decrement speed, else increase
             // till reaching max. allowed speed.
             if(to_close){
-                ref_vel -= .150; // decelerating by - 4 m/s2
+                ref_vel -= .150; // decelerating
             } else if(ref_vel < 49.5){
                 ref_vel += .224; // accelerating by - 4 m/s2
             }
 
             /********************************************************************
-            LANE CHANGE
-            *********************************************************************
-            Cars of interest:
-                in formt of me: the slowest in each lane
-                behind me: the fastest in each lane
-
-            1. Which lanes are within reach?
-            2. Which lane is the fastest?
-            2. If I have to change the lane, do I have clearance?
-            3. Switch lane
+            LANE CHANGE     (only when the target vehicle on my lane is to close)
             ********************************************************************/
+
             vector<int> reachable_lane;
 
             if(to_close){
-                // Get reachable lanes
+                // Get lanes which are reachable with just one lane change,
+                // including my current lane
                 for(int l = 0; l < 3; l++){
                     if(abs(l - lane) < 2){
                         reachable_lane.push_back(l);
                     }
                 }
 
+                // Variables for the velocities driven on each lane
                 vector<int> lane_speeds_0;
                 vector<int> lane_speeds_1;
                 vector<int> lane_speeds_2;
 
+                // Clearnce flag for a lane change to this lane
                 bool lane_clearance_0 = true;
                 bool lane_clearance_1 = true;
                 bool lane_clearance_2 = true;
 
+                // Getting information about the ego vehicles environment
                 for(int i = 0; i < sensor_fusion.size(); i++){
-                    // iterate through all vehicles and check if one is in my lane
+                    // iterate through all vehicles and calculate mag. velocity
                     float d = sensor_fusion[i][6];
                     for(int l = 0; l < reachable_lane.size(); l++){
-                        if(d < (2 + 4 * reachable_lane[l] + clearance) && d > (2 + 4 * reachable_lane[l] - clearance)){
+
+                        // I'm only interested of the other lines which I can reach
+                        // with just one lane change
+                        if(d < (2 + 4 * reachable_lane[l] + min_lat_clearance) && d > (2 + 4 * reachable_lane[l] - min_lat_clearance)){
 
                             // get vehicle speed x and y values of the target vehicle
                             double vx = sensor_fusion[i][3];
@@ -349,12 +348,17 @@ int main() {
                             double check_car_s = sensor_fusion[i][5];
                             check_car_s += ((double)prev_size * .02 * check_speed);
 
-                            // Stand hier: Ein auto, dass auf einer der möglichen spuren ist,
-                            // Ich kenne dessen geschwindihkeit, weiß aber nicht ob es vor oder
-                            // hinter mir ist. Ich weiß, dass ich hier bein, weil das Auto vor mir
-                            // langsamer ist als ich.
+                            /*  At this point I have the data of one car, which is
+                                on one of the possible lanes. I know it's velocity,
+                                but I don't know if it is in front of me or
+                                behind me. But I know that I'm in this function,
+                                because my current target vehicle in my lane is
+                                slower than me.
+                            */
 
-                            // All cars within a possible lane, which are in reach within +50
+                            // Generate some information about my environment:
+                            // looking on the reachable lanes for vehicles within
+                            // an area from ega vehcile till 50 in front
                             if((check_car_s > car_s) && (check_car_s - car_s < 50)){
                                 if(reachable_lane[l] == 0){
                                     lane_speeds_0.push_back(check_speed);
@@ -365,7 +369,7 @@ int main() {
                                 }
                             }
 
-                            // Lane clearance given?
+                            // Is a lane change to the desired lane possible?
                             if((check_car_s > (car_s - 8)) && (check_car_s - car_s < min_long_clearance)){
                                 if(reachable_lane[l] == 0){
                                     lane_clearance_0 = false;
@@ -379,9 +383,15 @@ int main() {
                     }
                 }
 
+                /*  Getting now the fastest lane:
+                    1. Is there a clearnce to change to taht lane?
+                    2. Is the lane free?
+                    3. If the lane is not free: take that the lane where the
+                       3rd slowest car is driving.
+                */
                 double best_speed;
 
-                // Is there a free lane?
+                // Iterate trough all lanes and take the best option.
                 for(int l = 0; l < reachable_lane.size(); l++){
                     if((reachable_lane[l] == 0) && lane_clearance_0){
                         if(lane_speeds_0.size() == 0){
