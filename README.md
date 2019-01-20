@@ -36,7 +36,11 @@ The need of a lane change is decided in the following way:
     1. If there is an empty lane, take it!
     2. If there is no empty lane, calculate which lane is the fastest. This is done by calculating the slowest vehicle of each potential lane and compare the slowest velocities. Take the lane with the 3rd slowest car within the green area (see figure in chapter "Car does not have collisions."). The green area is a bit longer than the other ones, just to make sure not to change the lane and stick behind a slower vehicle.
 
-Also have a look at: https://youtu.be/p1JlQPB3yHE
+> The car is able to drive at least 4.32 miles without incident..
+
+Video:
+[![Video](https://i.ytimg.com/vi/p1JlQPB3yHE/hqdefault.jpg)](https://youtu.be/p1JlQPB3yHE)
+
 
 ### Reflection
 
