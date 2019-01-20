@@ -253,11 +253,12 @@ int main() {
             int prev_size = previous_path_x.size();
 
             /********************************************************************
-            COLLISION AVOIDANCE
+            COLLISION AVOIDANCE aka. ACC
             ********************************************************************/
 
             // Clearance: Is the other car blocking my way?
             int clearance = 2;
+            int min_long_clearance = (int)(car_speed/2.0);
 
             // Check if we have a path "history"
             if(prev_size > 0){
@@ -287,7 +288,7 @@ int main() {
                     check_car_s += ((double)prev_size * .02 * check_speed);
 
                     // Looking only for cars which are in front of us and within range
-                    if((check_car_s > car_s) && (check_car_s - car_s < 30)){
+                    if((check_car_s > car_s) && (check_car_s - car_s < min_long_clearance)){
                         to_close = true;
                     }
                 }
@@ -296,10 +297,123 @@ int main() {
             // If ego vehicle is on collision course: decrement speed, else increase
             // till reaching max. allowed speed.
             if(to_close){
-                ref_vel -= .224; // decelerating by - 4 m/s2
+                ref_vel -= .150; // decelerating by - 4 m/s2
             } else if(ref_vel < 49.5){
                 ref_vel += .224; // accelerating by - 4 m/s2
             }
+
+            /********************************************************************
+            LANE CHANGE
+            *********************************************************************
+            Cars of interest:
+                in formt of me: the slowest in each lane
+                behind me: the fastest in each lane
+
+            1. Which lanes are within reach?
+            2. Which lane is the fastest?
+            2. If I have to change the lane, do I have clearance?
+            3. Switch lane
+            ********************************************************************/
+            vector<int> reachable_lane;
+
+            if(to_close){
+                // Get reachable lanes
+                for(int l = 0; l < 3; l++){
+                    if(abs(l - lane) < 2){
+                        reachable_lane.push_back(l);
+                    }
+                }
+
+                vector<int> lane_speeds_0;
+                vector<int> lane_speeds_1;
+                vector<int> lane_speeds_2;
+
+                bool lane_clearance_0 = true;
+                bool lane_clearance_1 = true;
+                bool lane_clearance_2 = true;
+
+                for(int i = 0; i < sensor_fusion.size(); i++){
+                    // iterate through all vehicles and check if one is in my lane
+                    float d = sensor_fusion[i][6];
+                    for(int l = 0; l < reachable_lane.size(); l++){
+                        if(d < (2 + 4 * reachable_lane[l] + clearance) && d > (2 + 4 * reachable_lane[l] - clearance)){
+
+                            // get vehicle speed x and y values of the target vehicle
+                            double vx = sensor_fusion[i][3];
+                            double vy = sensor_fusion[i][4];
+
+                            // get the magnitude speed of the target vehicle
+                            double check_speed = sqrt(vx * vx + vy * vy);
+
+                            // get the s position of the target vehicle
+                            double check_car_s = sensor_fusion[i][5];
+                            check_car_s += ((double)prev_size * .02 * check_speed);
+
+                            // Stand hier: Ein auto, dass auf einer der möglichen spuren ist,
+                            // Ich kenne dessen geschwindihkeit, weiß aber nicht ob es vor oder
+                            // hinter mir ist. Ich weiß, dass ich hier bein, weil das Auto vor mir
+                            // langsamer ist als ich.
+
+                            // All cars within a possible lane, which are in reach within +60 and -10
+                            if((check_car_s > car_s) && (check_car_s - car_s < 60)){
+                                if(reachable_lane[l] == 0){
+                                    lane_speeds_0.push_back(check_speed);
+                                } else if(reachable_lane[l] == 1){
+                                    lane_speeds_1.push_back(check_speed);
+                                } else if(reachable_lane[l] == 2){
+                                    lane_speeds_2.push_back(check_speed);
+                                }
+                            }
+
+                            // Lane clearance given?
+                            if((check_car_s > (car_s - 8)) && (check_car_s - car_s < min_long_clearance)){
+                                if(reachable_lane[l] == 0){
+                                    lane_clearance_0 = false;
+                                } else if(reachable_lane[l] == 1){
+                                    lane_clearance_1 = false;
+                                } else if(reachable_lane[l] == 2){
+                                    lane_clearance_2 = false;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                double best_speed;
+
+                // Is there a free lane?
+                for(int l = 0; l < reachable_lane.size(); l++){
+                    if((reachable_lane[l] == 0) && lane_clearance_0){
+                        if(lane_speeds_0.size() == 0){
+                            lane = 0;
+                        } else {
+                            best_speed = *min_element(lane_speeds_0.begin(), lane_speeds_0.end());
+                            lane = 0;
+                        }
+                    } else if((reachable_lane[l] == 1) && lane_clearance_1){
+                        if(lane_speeds_1.size() == 0){
+                            lane = 1;
+                        } else {
+                            double min_speed = *min_element(lane_speeds_1.begin(), lane_speeds_1.end());
+                            if(best_speed < min_speed){
+                                best_speed = min_speed;
+                                lane = 1;
+                            }
+                        }
+                    } else if((reachable_lane[l] == 2) && lane_clearance_2){
+                        if(lane_speeds_2.size() == 0){
+                            lane = 2;
+                        } else {
+                            double min_speed = *min_element(lane_speeds_2.begin(), lane_speeds_2.end());
+                            if(best_speed < min_speed){
+                                best_speed = min_speed;
+                                lane = 2;
+                            }
+                        }
+                    }
+                }
+            }
+
 
             /********************************************************************
             TRAJECTORY CALCULATION
