@@ -31,10 +31,10 @@ As shown in the figure above, the car is only able to change to the neighbor lan
 
 Decision tree for the lane change:
 1. A target vehicle is within "ACC-range" on the ego vehicles lane, the ego vehicle has to decelerate.
-2. The ego vehicle checks to which lane it could reach with a single lane change (the current lane is also taken into account).
-3. Check the where to go:
+2. The ego vehicle checks which lanes it could change to with a single lane change (the current lane is also taken into account).
+3. Check where to go:
     1. If there is an empty lane, take it!
-    2. If all lanes jammed take the lane with the overall fastest cars. Take therefore the green area (see figure in chapter "Car does not have collisions.") into account. Since the green area provides a better "view", the chance to take jammed road by a car ahead is minimized.
+    2. If all lanes are jammed, take the lane with the overall fastest cars. Take therefore the green area (see figure in chapter "Car does not have collisions.") into account. Since the green area provides a better "view" which improves the chance to pick the better lane in more complex scenarios.
 
 > The car is able to drive at least 4.32 miles without incident..
 
