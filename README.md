@@ -9,32 +9,32 @@ Self-Driving Car Engineer Nanodegree Program
 
 > The car drives according to the speed limit. Max Acceleration and Jerk are not Exceeded.
 
-The initial speed of the vehicle is 0 (main.cpp:208). As long as the target speed of 49.5 is not reached, the velocity is incremented by  0.224´, which results in a maximum acceleration of 4 m/s2.
+The initial speed of the vehicle is 0 (main.cpp:208). As long as the target speed of 49.5 is not reached, the velocity is incremented in a step size of 0.224, which results in a maximum acceleration of 4 m/s2.
 
-The deceleration is with a value of 0.150 a bit lower, which results in a smoother approach to the slower target vehicle.
+Step step size of the deceleration is with a value of 0.150 a lower, which results in a smoother approach to the slower target vehicle.
 
-The lateral jerk reduction is reached by taking the old waypoint into account when calculating the trajectory using spline.
+The lateral jerk reduction is reached by taking the old waypoints into account when calculating the trajectory using spline (main.cpp:440).
 
 > Car does not have collisions.
 
 ![](./images/clearance.png)
 
-As shown in the figure above, there are two regions for avoiding collisions:
-1. The blue area takes care of the longitudinal clearance. As long a target vehicle is in this area, the ego vehicle keeps it speed and a min. safety distance which is calculated related to the velocity of the ego vehicle.
-2. Side / Lateral clearance: This one is used for a safe lane change.
+As shown in the figure above, caluclatens are made to prevent collisions in the lateral and longitudinal areas:
+1. The blue area takes care of the longitudinal clearance. As long a target vehicle is in this area, the ego vehicle keeps a minimum safety distance to the target vehicle and try to match the tragets vehicle velocity.
+2. The red area is used for the side / Lateral clearance. It's values are used to calculate and determine a safe lane change.
 
 > The car is able to change lanes
 
 ![](./images/laneChange.png)
 
-Based on its current lane, the car is only able to change to the next lane (a direct change from left to the right lane is not possible)
+As shown in the figure above, the car is only able to change to the neighbor lane(s). Changes over two lanes are not part of the implementation.
 
-The need of a lane change is decided in the following way:
-
-1. The ego vehicle has to brake, since the target vehicle in the same lane is slower as desired velocity.
-2. The ego vehicle checks if to which lane it could change without risking a collision.
+Decision tree for the lane change:
+1. A target vehicle is within "ACC-range" on the ego vehicles lane, the ego vehicle has to decelerate.
+2. The ego vehicle checks to which lane it could reach with a single lane change (the current lane is also taken into account).
+3. Check the where to go:
     1. If there is an empty lane, take it!
-    2. If there is no empty lane, calculate which lane is the fastest. This is done by calculating the slowest vehicle of each potential lane and compare the slowest velocities. Take the lane with the 3rd slowest car within the green area (see figure in chapter "Car does not have collisions."). The green area is a bit longer than the other ones, just to make sure not to change the lane and stick behind a slower vehicle.
+    2. If all lanes jammed take the lane with the overall fastest cars. Take therefore the green area (see figure in chapter "Car does not have collisions.") into account. Since the green area provides a better "view", the chance to take jammed road by a car ahead is minimized.
 
 > The car is able to drive at least 4.32 miles without incident..
 
@@ -44,9 +44,9 @@ Video:
 
 ### Reflection
 
-The implementation works very well, even if it does not take into account a state machine or the dynamic behaviour of other road users.
+The implementation works very well, even if it does not take the other cars (mis)behaviour into account.
 
-An optimisation would be necessary to mention a more precise environment model which, together with a state machine, would significantly improve lane change, fall back and get into another lane scenarios.
+A possible improvement would be for example an optimized environment model which calculates with the dynamic behavior of the environment, as well as a state machine with which the changes of the tracks can be planned more optimized.
 
 ---
 
