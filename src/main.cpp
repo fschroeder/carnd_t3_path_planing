@@ -354,8 +354,8 @@ int main() {
                             // hinter mir ist. Ich weiß, dass ich hier bein, weil das Auto vor mir
                             // langsamer ist als ich.
 
-                            // All cars within a possible lane, which are in reach within +60 and -10
-                            if((check_car_s > car_s) && (check_car_s - car_s < 60)){
+                            // All cars within a possible lane, which are in reach within +50
+                            if((check_car_s > car_s) && (check_car_s - car_s < 50)){
                                 if(reachable_lane[l] == 0){
                                     lane_speeds_0.push_back(check_speed);
                                 } else if(reachable_lane[l] == 1){
