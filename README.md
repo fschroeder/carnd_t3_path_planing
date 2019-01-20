@@ -9,19 +9,19 @@ Self-Driving Car Engineer Nanodegree Program
 
 > The car drives according to the speed limit. Max Acceleration and Jerk are not Exceeded.
 
-The initial speed of the vehicle is 0 (main.cpp:208). As long as the target speed of 49.5 is not reached, the velocity is incremented in a step size of 0.224, which results in a maximum acceleration of 4 m/s2.
+The initial speed of the vehicle is 0 (main.cpp:208). As long as the target speed of 49.5 is not reached (and no other cars are in front of the ego vehicle), the velocity is incremented by a step size of 0.224, which results in a maximum acceleration of 4 m/s2.
 
-Step step size of the deceleration is with a value of 0.150 a lower, which results in a smoother approach to the slower target vehicle.
+The step size of the deceleration is with a value of 0.150 lower, which results in a smoother approach to the slower target vehicle.
 
-The lateral jerk reduction is reached by taking the old waypoints into account when calculating the trajectory using spline (main.cpp:440).
+The lateral jerk reduction is reached by taking the old waypoints into account, when calculating the trajectory using spline (main.cpp:440).
 
 > Car does not have collisions.
 
 ![](./images/clearance.png)
 
-As shown in the figure above, caluclatens are made to prevent collisions in the lateral and longitudinal areas:
-1. The blue area takes care of the longitudinal clearance. As long a target vehicle is in this area, the ego vehicle keeps a minimum safety distance to the target vehicle and try to match the tragets vehicle velocity.
-2. The red area is used for the side / Lateral clearance. It's values are used to calculate and determine a safe lane change.
+As shown in the figure above, calculations are made to prevent collisions in the lateral and longitudinal areas:
+1. The blue area takes care of the longitudinal clearance. As long as a target vehicle is in this area, the ego vehicle keeps a minimum safety distance to the target vehicle and tries to match the target vehicle velocity.
+2. The red area is used for the side / lateral clearance. It's values are used to calculate and determine a safe lane change.
 
 > The car is able to change lanes
 
@@ -34,7 +34,7 @@ Decision tree for the lane change:
 2. The ego vehicle checks which lanes it could change to with a single lane change (the current lane is also taken into account).
 3. Check where to go:
     1. If there is an empty lane, take it!
-    2. If all lanes are jammed, take the lane with the overall fastest cars. Take therefore the green area (see figure in chapter "Car does not have collisions.") into account. Since the green area provides a better "view" which improves the chance to pick the better lane in more complex scenarios.
+    2. If all lanes are jammed, take the lane with the overall fastest cars. Take therefore the green area (see figure in chapter "Car does not have collisions.") into account. The green area provides a better "view" which improves the chance to pick the better lane in more complex scenarios.
 
 > The car is able to drive at least 4.32 miles without incident..
 
