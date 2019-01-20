@@ -1,6 +1,51 @@
 # CarND-Path-Planning-Project
 Self-Driving Car Engineer Nanodegree Program
-   
+
+![](./images/cover.png)
+
+---
+
+## Write up and project rubrics
+
+> The car drives according to the speed limit. Max Acceleration and Jerk are not Exceeded.
+
+The initial speed of the vehicle is 0 (main.cpp:208). As long as the target speed of 49.5 is not reached, the velocity is incremented by  0.224´, which results in a maximum acceleration of 4 m/s2.
+
+The deceleration is with a value of 0.150 a bit lower, which results in a smoother approach to the slower target vehicle.
+
+The lateral jerk reduction is reached by taking the old waypoint into account when calculating the trajectory using spline.
+
+> Car does not have collisions.
+
+![](./images/clearance.png)
+
+As shown in the figure above, there are two regions for avoiding collisions:
+1. The blue area takes care of the longitudinal clearance. As long a target vehicle is in this area, the ego vehicle keeps it speed and a min. safety distance which is calculated related to the velocity of the ego vehicle.
+2. Side / Lateral clearance: This one is used for a safe lane change.
+
+> The car is able to change lanes
+
+![](./images/laneChange.png)
+
+Based on its current lane, the car is only able to change to the next lane (a direct change from left to the right lane is not possible)
+
+The need of a lane change is decided in the following way:
+
+1. The ego vehicle has to brake, since the target vehicle in the same lane is slower as desired velocity.
+2. The ego vehicle checks if to which lane it could change without risking a collision.
+    1. If there is an empty lane, take it!
+    2. If there is no empty lane, calculate which lane is the fastest. This is done by calculating the slowest vehicle of each potential lane and compare the slowest velocities. Take the lane with the 3rd slowest car within the green area (see figure in chapter "Car does not have collisions."). The green area is a bit longer than the other ones, just to make sure not to change the lane and stick behind a slower vehicle.
+
+Also have a look at: https://youtu.be/p1JlQPB3yHE
+
+### Reflection
+
+The implementation works very well, even if it does not take into account a state machine or the dynamic behaviour of other road users.
+
+An optimisation would be necessary to mention a more precise environment model which, together with a state machine, would significantly improve lane change, fall back and get into another lane scenarios.
+
+---
+
 ### Simulator.
 You can download the Term3 Simulator which contains the Path Planning Project from the [releases tab (https://github.com/udacity/self-driving-car-sim/releases/tag/T3_v1.2).  
 
@@ -43,13 +88,13 @@ Here is the data provided from the Simulator to the C++ Program
 #### Previous path data given to the Planner
 
 //Note: Return the previous list but with processed points removed, can be a nice tool to show how far along
-the path has processed since last time. 
+the path has processed since last time.
 
 ["previous_path_x"] The previous list of x points previously given to the simulator
 
 ["previous_path_y"] The previous list of y points previously given to the simulator
 
-#### Previous path's end s and d values 
+#### Previous path's end s and d values
 
 ["end_path_s"] The previous list's last point's frenet s value
 
@@ -57,7 +102,7 @@ the path has processed since last time.
 
 #### Sensor Fusion Data, a list of all other car's attributes on the same side of the road. (No Noise)
 
-["sensor_fusion"] A 2d vector of cars and then that car's [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, car's x velocity in m/s, car's y velocity in m/s, car's s position in frenet coordinates, car's d position in frenet coordinates. 
+["sensor_fusion"] A 2d vector of cars and then that car's [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, car's x velocity in m/s, car's y velocity in m/s, car's s position in frenet coordinates, car's d position in frenet coordinates.
 
 ## Details
 
@@ -87,7 +132,7 @@ A really helpful resource for doing this project and creating smooth trajectorie
   * Run either `install-mac.sh` or `install-ubuntu.sh`.
   * If you install from source, checkout to commit `e94b6e1`, i.e.
     ```
-    git clone https://github.com/uWebSockets/uWebSockets 
+    git clone https://github.com/uWebSockets/uWebSockets
     cd uWebSockets
     git checkout e94b6e1
     ```
@@ -142,4 +187,3 @@ still be compilable with cmake and make./
 
 ## How to write a README
 A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
-
